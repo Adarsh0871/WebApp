@@ -23,7 +23,7 @@ pipeline {
         stage("Check out") {
             steps {
                 script {
-                    git branch: 'master', url: 'https://github.com/Adarsh0871/WebApp.git';
+                    git branch: 'main', url: 'https://github.com/Adarsh0871/WebApp.git';
                 }
             }
         }
@@ -82,7 +82,7 @@ pipeline {
             }
             steps{
                 script {
-                    git branch: 'feature/ansibleNexus', url: 'https://github.com/ranjit4github/Ansible_Demo_Project.git';
+                    git branch: 'main', url: 'https://github.com/Adarsh0871/WebApp.git';
                 }
                 sh '''
                     ansible-playbook -e vers=${BUILD_NUMBER} roles/site.yml
