@@ -1,8 +1,9 @@
 pipeline {
     agent any
     tools {
-        maven "Maven 3" // Ensure this matches your Maven installation name
-    } 
+        maven "Maven 3" // Replace with your Maven installation name
+        jdk "Java17"    // Use the correct JDK name from Jenkins
+    }
 
     environment {
         NEXUS_VERSION = "nexus3"
