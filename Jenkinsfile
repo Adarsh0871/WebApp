@@ -1,8 +1,8 @@
 pipeline {
     agent any
     tools {
-        maven "Maven3"
-        jdk "Java17"
+        maven "Maven 3"
+        jdk "Java 17"
     }
 
     environment {
@@ -36,7 +36,7 @@ pipeline {
             }
         }
 
-        stage("publish to nexus") {
+        stage("publish to nexus")a {
             steps {
                 script {
                     // Read POM xml file using 'readMavenPom' step , this step 'readMavenPom' is included in: https://plugins.jenkins.io/pipeline-utility-steps
