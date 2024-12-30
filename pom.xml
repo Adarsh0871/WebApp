@@ -1,30 +1,88 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.ranjitswain</groupId>
-	<artifactId>WebApp</artifactId>
-	<packaging>war</packaging>
-	<version>1.0-SNAPSHOT</version>
-	<name>WebApp Maven Webapp</name>
-	<url>http://maven.apache.org</url>
-	<dependencies>
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>servlet-api</artifactId>
-			<version>2.5</version>
-		</dependency>
-		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>8.0.12</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.10</version>
-		</dependency> 
-	</dependencies>
-	<build>
-		<finalName>WebApp</finalName>
-	</build>
-</project>
+pipeline {
+    agent any
+    tools {
+        maven "Maven 3" // Ensure this matches your Maven installation name
+        jdk "JAVA"      // Replace with the correct JDK installation name
+    }
+
+    environment {
+        NEXUS_VERSION = "nexus3"
+        NEXUS_PROTOCOL = "http"
+        NEXUS_URL = "127.0.0.1:9091"
+        NEXUS_REPOSITORY = "WebApp"
+        NEXUS_CREDENTIAL_ID = "nexusCredential"
+        ARTIFACT_VERSION = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage("Checkout Code") {
+            steps {
+                script {
+                    git branch: 'main', url: 'https://github.com/Adarsh0871/WebApp.git'
+                }
+            }
+        }
+
+        stage("Build Project") {
+            steps {
+                script {
+                    sh "mvn clean package"
+                }
+            }
+        }
+
+        stage("Publish to Nexus") {
+            steps {
+                script {
+                    pom = readMavenPom file: "pom.xml"
+                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
+                    if (filesByGlob.size() > 0) {
+                        artifactPath = filesByGlob[0].path
+                        artifactExists = fileExists artifactPath
+
+                        if (artifactExists) {
+                            echo "Found artifact: ${artifactPath}"
+                            echo "Group: ${pom.groupId}, Artifact: ${pom.artifactId}, Version: ${pom.version}"
+
+                            nexusArtifactUploader(
+                                nexusVersion: NEXUS_VERSION,
+                                protocol: NEXUS_PROTOCOL,
+                                nexusUrl: NEXUS_URL,
+                                groupId: pom.groupId,
+                                version: ARTIFACT_VERSION,
+                                repository: NEXUS_REPOSITORY,
+                                credentialsId: NEXUS_CREDENTIAL_ID,
+                                artifacts: [
+                                    [
+                                        artifactId: pom.artifactId,
+                                        classifier: '',
+                                        file: artifactPath,
+                                        type: pom.packaging
+                                    ]
+                                ]
+                            )
+                        } else {
+                            error "Artifact file not found at: ${artifactPath}"
+                        }
+                    } else {
+                        error "No artifacts found in target directory."
+                    }
+                }
+            }
+        }
+
+        stage("Execute Ansible Play - CD") {
+            agent {
+                label 'ansible'
+            }
+            steps {
+                script {
+                    git branch: 'main', url: 'https://github.com/Adarsh0871/WebApp.git'
+                }
+                sh '''
+                    ansible-playbook -e vers=${BUILD_NUMBER} roles/site.yml
+                '''
+            }
+        }
+    }
+}
